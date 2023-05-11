@@ -32,6 +32,7 @@ def genMarker(name, id, size):
 
     return marker
 
+
 def convIDtoInt(id):
     """Converts an ArUco marker ID from a string to an integer.
 
@@ -55,3 +56,62 @@ def convIDtoInt(id):
             id = id // 2
 
     return id
+
+
+def overlay_2D(image, marker_id, image_file):
+    """Overlays an image file over an arUco marker in a video frame.
+
+  Args:
+    image: The video frame.
+    marker_id: The id of the arUco marker.
+    image_file: The path to the image file to overlay.
+
+  Returns:
+    The video frame with the image overlayed.
+  """
+
+    # Load the arUco dictionary.
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
+
+    parameters = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(dictionary, parameters)
+
+    # Find the arUco markers in the image.
+    corners, ids, rejected_img_points = detector.detectMarkers(image)
+
+    # If a marker with the specified id is found, overlay the image file.
+    if ids is not None and ids[0] == marker_id:
+        # Draw the image_file over the arUco marker.
+
+        top_left = (int(corners[0][0][0][0]), int(corners[0][0][0][1]))
+        top_right = (int(corners[0][0][1][0]), int(corners[0][0][1][1]))
+        bottom_left = (int(corners[0][0][3][0]), int(corners[0][0][3][1]))
+        bottom_right = (int(corners[0][0][2][0]), int(corners[0][0][2][1]))
+
+        cv2.circle(image, top_left, 5, (0, 0, 255), -1)
+        cv2.circle(image, top_right, 5, (0, 0, 255), -1)
+        cv2.circle(image, bottom_left, 5, (0, 0, 255), -1)
+        cv2.circle(image, bottom_right, 5, (0, 0, 255), -1)
+
+        # Overlay the image file over the arUco marker.
+        overlay = cv2.imread(image_file)
+
+        # Resize the overlay to fit the arUco marker.
+        overlay = cv2.resize(overlay, (int(corners[0][0][1][0]) - int(corners[0][0][0][0]), int(corners[0][0][3][1]) - int(corners[0][0][0][1])))
+
+        # Overlay the image file over the arUco marker.
+        #image[int(corners[0][0][0][1]):int(corners[0][0][3][1]), int(corners[0][0][0][0]):int(corners[0][0][1][0])] = overlay
+
+        # Overlay the image file over the arUco marker but use our defined corners
+        image[top_left[1]:bottom_left[1], top_left[0]:top_right[0]] = overlay
+
+        # Draw the bounding box around the arUco marker.
+        cv2.line(image, top_left, top_right, (0, 255, 0), 2)
+        cv2.line(image, top_right, bottom_right, (0, 255, 0), 2)
+        cv2.line(image, bottom_right, bottom_left, (0, 255, 0), 2)
+        cv2.line(image, bottom_left, top_left, (0, 255, 0), 2)
+
+        # Draw the ID of the arUco marker.
+        cv2.putText(image, str(ids[0]), (int(corners[0][0][0][0]), int(corners[0][0][0][1]) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+    return image
